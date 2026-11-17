@@ -83,7 +83,7 @@ export default function FeaturedProjects() {
     return true;
   });
 
-  // Slider Navigation
+  // Manual Slider Navigation
   const slide = (direction) => {
     if (!sliderRef.current) return;
 
@@ -103,17 +103,20 @@ export default function FeaturedProjects() {
 
   // Reset Slider When Filter Changes
   const changeFilter = (value) => {
+    setIsPaused(true);
     setActiveFilter(value);
 
     if (sliderRef.current) {
       sliderRef.current.scrollTo({
         left: 0,
-        behavior: "smooth",
+        behavior: "instant",
       });
     }
+
+    setIsPaused(false);
   };
 
-  // Automatic Project Slider - Every 1 Second
+  // Continuous Smooth Auto Slider
   useEffect(() => {
     if (
       loading ||
@@ -124,41 +127,48 @@ export default function FeaturedProjects() {
       return;
     }
 
-    const interval = setInterval(() => {
-      const slider = sliderRef.current;
+    const slider = sliderRef.current;
 
-      if (!slider) return;
+    if (!slider) return;
 
-      // Check if slider has horizontal overflow
-      if (slider.scrollWidth <= slider.clientWidth + 10) {
-        return;
+    let animationFrame;
+    let lastTime = 0;
+
+    const speed = 30; // Pixels per second
+
+    const animate = (time) => {
+      if (!sliderRef.current) return;
+
+      if (!lastTime) lastTime = time;
+
+      const delta = Math.min(time - lastTime, 50);
+      lastTime = time;
+
+      const currentSlider = sliderRef.current;
+
+      const hasOverflow =
+        currentSlider.scrollWidth > currentSlider.clientWidth + 2;
+
+      if (hasOverflow) {
+        currentSlider.scrollLeft += (speed * delta) / 1000;
+
+        // Reset to beginning when reaching the end
+        if (
+          currentSlider.scrollLeft + currentSlider.clientWidth >=
+          currentSlider.scrollWidth - 2
+        ) {
+          currentSlider.scrollLeft = 0;
+        }
       }
 
-      const card = slider.querySelector("[data-project-card]");
+      animationFrame = requestAnimationFrame(animate);
+    };
 
-      if (!card) return;
+    animationFrame = requestAnimationFrame(animate);
 
-      const cardWidth = card.getBoundingClientRect().width;
-      const gap = 16;
-
-      const isAtEnd =
-        slider.scrollLeft + slider.clientWidth >=
-        slider.scrollWidth - 10;
-
-      if (isAtEnd) {
-        slider.scrollTo({
-          left: 0,
-          behavior: "smooth",
-        });
-      } else {
-        slider.scrollBy({
-          left: cardWidth + gap,
-          behavior: "smooth",
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+    };
   }, [loading, error, filteredProjects.length, isPaused]);
 
   return (
@@ -172,7 +182,6 @@ export default function FeaturedProjects() {
       <div className="pointer-events-none absolute -right-40 bottom-0 h-72 w-72 rounded-full bg-fuchsia-200/30 blur-[100px]" />
 
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
-
         {/* Section Heading */}
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-white px-4 py-2">
@@ -195,7 +204,6 @@ export default function FeaturedProjects() {
 
         {/* Filters and Slider Arrows */}
         <div className="mb-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
-
           {/* Filters */}
           <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
             {filters.map((filter) => (
@@ -216,7 +224,6 @@ export default function FeaturedProjects() {
 
           {/* Slider Controls */}
           <div className="flex items-center gap-2">
-
             {/* Previous Button */}
             <button
               type="button"
@@ -311,7 +318,7 @@ export default function FeaturedProjects() {
             ref={sliderRef}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {filteredProjects.map((project) => {
               const imageUrl =
@@ -406,7 +413,6 @@ export default function FeaturedProjects() {
             View All Projects <span>→</span>
           </Link>
         </div>
-
       </div>
     </section>
   );
