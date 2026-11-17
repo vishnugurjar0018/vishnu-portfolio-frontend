@@ -34,30 +34,45 @@ export default function Testimonials() {
   const sliderRef = useRef(null);
   const pausedRef = useRef(false);
 
-  // Automatic Infinite Slider
+  // Continuous Infinite Auto Slider
   useEffect(() => {
     const slider = sliderRef.current;
     if (!slider) return;
 
     let animationFrame;
     let previousTime = 0;
+    let loopWidth = 0;
 
     const speed = 35; // Pixels per second
+
+    // Calculate exact width of original 3 cards
+    const calculateWidth = () => {
+      const cards = slider.querySelectorAll("[data-testimonial-card]");
+
+      if (cards.length > testimonials.length) {
+        loopWidth =
+          cards[testimonials.length].offsetLeft -
+          cards[0].offsetLeft;
+      }
+    };
+
+    calculateWidth();
+
+    const resizeObserver = new ResizeObserver(calculateWidth);
+    resizeObserver.observe(slider);
 
     const animate = (time) => {
       if (!previousTime) previousTime = time;
 
-      const delta = (time - previousTime) / 1000;
+      const delta = Math.min((time - previousTime) / 1000, 0.05);
       previousTime = time;
 
-      if (!pausedRef.current) {
-        const halfWidth = slider.scrollWidth / 2;
-
+      if (!pausedRef.current && loopWidth > 0) {
         slider.scrollLeft += speed * delta;
 
-        // Infinite loop
-        if (slider.scrollLeft >= halfWidth) {
-          slider.scrollLeft -= halfWidth;
+        // Reset position for seamless infinite loop
+        if (slider.scrollLeft >= loopWidth) {
+          slider.scrollLeft -= loopWidth;
         }
       }
 
@@ -66,29 +81,30 @@ export default function Testimonials() {
 
     animationFrame = requestAnimationFrame(animate);
 
-    return () => cancelAnimationFrame(animationFrame);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+    };
   }, []);
 
+  // Previous / Next Controls
   const slide = (direction) => {
-    if (!sliderRef.current) return;
+    const slider = sliderRef.current;
+    if (!slider) return;
 
-    const card = sliderRef.current.querySelector(
-      "[data-testimonial-card]"
-    );
-
+    const card = slider.querySelector("[data-testimonial-card]");
     if (!card) return;
 
     const gap = 20;
     const cardWidth = card.getBoundingClientRect().width;
 
-    sliderRef.current.scrollBy({
-      left: direction * (cardWidth + gap),
-      behavior: "smooth",
-    });
+    slider.scrollLeft += direction * (cardWidth + gap);
   };
 
-  // Duplicate cards for infinite sliding
-  const infiniteTestimonials = [...testimonials, ...testimonials];
+  const infiniteTestimonials = [
+    ...testimonials,
+    ...testimonials,
+  ];
 
   return (
     <section
@@ -128,7 +144,15 @@ export default function Testimonials() {
             aria-label="Previous testimonials"
             className="flex h-11 w-11 items-center justify-center rounded-full border border-purple-200 bg-white text-[#7900D8] transition hover:bg-[#7900D8] hover:text-white"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M19 12H5m7 7-7-7 7-7" />
             </svg>
           </button>
@@ -139,7 +163,15 @@ export default function Testimonials() {
             aria-label="Next testimonials"
             className="flex h-11 w-11 items-center justify-center rounded-full border border-purple-200 bg-white text-[#7900D8] transition hover:bg-[#7900D8] hover:text-white"
           >
-            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-5 w-5"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M5 12h14m-7-7 7 7-7 7" />
             </svg>
           </button>
@@ -148,17 +180,29 @@ export default function Testimonials() {
         {/* Testimonials Slider */}
         <div
           ref={sliderRef}
-          onMouseEnter={() => (pausedRef.current = true)}
-          onMouseLeave={() => (pausedRef.current = false)}
-          onTouchStart={() => (pausedRef.current = true)}
-          onTouchEnd={() => (pausedRef.current = false)}
-          className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          onMouseEnter={() => {
+            pausedRef.current = true;
+          }}
+          onMouseLeave={() => {
+            pausedRef.current = false;
+          }}
+          onTouchStart={() => {
+            pausedRef.current = true;
+          }}
+          onTouchEnd={() => {
+            pausedRef.current = false;
+          }}
+          className="flex gap-5 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{
+            scrollBehavior: "auto",
+            overscrollBehaviorX: "contain",
+          }}
         >
           {infiniteTestimonials.map((item, index) => (
             <div
               key={index}
               data-testimonial-card
-              className="w-full shrink-0 snap-start rounded-2xl border border-purple-100 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-100/60 sm:w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-2.5rem)/3)]"
+              className="w-full shrink-0 rounded-2xl border border-purple-100 bg-white p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-100/60 sm:w-[calc((100%-1.25rem)/2)] lg:w-[calc((100%-2.5rem)/3)]"
             >
               {/* Quote Icon and Rating */}
               <div className="flex items-center justify-between">
