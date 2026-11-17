@@ -83,81 +83,83 @@ export default function FeaturedProjects() {
     return true;
   });
 
+  // Duplicate Projects For Infinite Slider
+  const sliderProjects =
+    filteredProjects.length > 0
+      ? [...filteredProjects, ...filteredProjects]
+      : [];
+
   // Manual Slider Navigation
   const slide = (direction) => {
-    if (!sliderRef.current) return;
-
     const slider = sliderRef.current;
-    const card = slider.querySelector("[data-project-card]");
+    if (!slider) return;
 
+    const card = slider.querySelector("[data-project-card]");
     if (!card) return;
 
     const cardWidth = card.getBoundingClientRect().width;
     const gap = 16;
 
-    slider.scrollBy({
-      left: direction * (cardWidth + gap),
-      behavior: "smooth",
-    });
-  };
+    const loopWidth = slider.scrollWidth / 2;
 
-  // Reset Slider When Filter Changes
-  const changeFilter = (value) => {
-    setIsPaused(true);
-    setActiveFilter(value);
+    const nextPosition =
+      slider.scrollLeft + direction * (cardWidth + gap);
 
-    if (sliderRef.current) {
-      sliderRef.current.scrollTo({
-        left: 0,
-        behavior: "instant",
+    if (nextPosition < 0) {
+      slider.scrollLeft = loopWidth;
+    } else if (nextPosition >= loopWidth) {
+      slider.scrollLeft = 0;
+    } else {
+      slider.scrollTo({
+        left: nextPosition,
+        behavior: "smooth",
       });
     }
-
-    setIsPaused(false);
   };
 
-  // Continuous Smooth Auto Slider
+  // Reset Slider On Filter Change
+  useEffect(() => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollLeft = 0;
+    }
+  }, [activeFilter]);
+
+  // Continuous Infinite Auto Slider
   useEffect(() => {
     if (
       loading ||
       error ||
       isPaused ||
-      filteredProjects.length <= 1
+      filteredProjects.length === 0
     ) {
       return;
     }
 
     const slider = sliderRef.current;
-
     if (!slider) return;
 
     let animationFrame;
-    let lastTime = 0;
+    let previousTime = 0;
 
-    const speed = 30; // Pixels per second
+    const speed = 25; // Pixels per second
 
     const animate = (time) => {
       if (!sliderRef.current) return;
 
-      if (!lastTime) lastTime = time;
+      if (!previousTime) previousTime = time;
 
-      const delta = Math.min(time - lastTime, 50);
-      lastTime = time;
+      const delta = Math.min(time - previousTime, 50);
+      previousTime = time;
 
       const currentSlider = sliderRef.current;
+      const loopWidth = currentSlider.scrollWidth / 2;
 
-      const hasOverflow =
-        currentSlider.scrollWidth > currentSlider.clientWidth + 2;
-
-      if (hasOverflow) {
+      if (loopWidth > 0) {
         currentSlider.scrollLeft += (speed * delta) / 1000;
 
-        // Reset to beginning when reaching the end
-        if (
-          currentSlider.scrollLeft + currentSlider.clientWidth >=
-          currentSlider.scrollWidth - 2
-        ) {
-          currentSlider.scrollLeft = 0;
+        // Seamless loop without stopping
+        if (currentSlider.scrollLeft >= loopWidth) {
+          currentSlider.scrollLeft -= loopWidth;
         }
       }
 
@@ -182,6 +184,7 @@ export default function FeaturedProjects() {
       <div className="pointer-events-none absolute -right-40 bottom-0 h-72 w-72 rounded-full bg-fuchsia-200/30 blur-[100px]" />
 
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+
         {/* Section Heading */}
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-white px-4 py-2">
@@ -204,13 +207,14 @@ export default function FeaturedProjects() {
 
         {/* Filters and Slider Arrows */}
         <div className="mb-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
+
           {/* Filters */}
           <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
             {filters.map((filter) => (
               <button
                 key={filter.value}
                 type="button"
-                onClick={() => changeFilter(filter.value)}
+                onClick={() => setActiveFilter(filter.value)}
                 className={`rounded-full border px-5 py-2.5 text-sm font-semibold transition-all duration-300 ${
                   activeFilter === filter.value
                     ? "border-[#7900D8] bg-[#7900D8] text-white shadow-md shadow-purple-200"
@@ -224,7 +228,8 @@ export default function FeaturedProjects() {
 
           {/* Slider Controls */}
           <div className="flex items-center gap-2">
-            {/* Previous Button */}
+
+            {/* Previous */}
             <button
               type="button"
               onClick={() => slide(-1)}
@@ -244,7 +249,7 @@ export default function FeaturedProjects() {
               </svg>
             </button>
 
-            {/* Next Button */}
+            {/* Next */}
             <button
               type="button"
               onClick={() => slide(1)}
@@ -312,15 +317,21 @@ export default function FeaturedProjects() {
           </div>
         )}
 
-        {/* Horizontal Project Slider */}
+        {/* Infinite Horizontal Project Slider */}
         {!loading && !error && filteredProjects.length > 0 && (
           <div
             ref={sliderRef}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => setIsPaused(false)}
+            className="flex gap-4 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{
+              scrollBehavior: "auto",
+              overscrollBehaviorX: "contain",
+            }}
           >
-            {filteredProjects.map((project) => {
+            {sliderProjects.map((project, index) => {
               const imageUrl =
                 typeof project.thumbnail === "string"
                   ? project.thumbnail
@@ -336,9 +347,9 @@ export default function FeaturedProjects() {
 
               return (
                 <article
-                  key={project._id || project.id || project.title}
+                  key={`${project._id || project.id || project.title}-${index}`}
                   data-project-card
-                  className="group w-full shrink-0 snap-start rounded-2xl border border-purple-100 bg-white p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-purple-300 hover:shadow-xl hover:shadow-purple-100/70 sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-3rem)/4)]"
+                  className="group w-full shrink-0 rounded-2xl border border-purple-100 bg-white p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-purple-300 hover:shadow-xl hover:shadow-purple-100/70 sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-3rem)/4)]"
                 >
                   {/* Project Image */}
                   <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#F0E5FF]">
@@ -413,6 +424,7 @@ export default function FeaturedProjects() {
             View All Projects <span>→</span>
           </Link>
         </div>
+
       </div>
     </section>
   );
