@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const testimonials = [
   {
@@ -32,6 +32,42 @@ const testimonials = [
 
 export default function Testimonials() {
   const sliderRef = useRef(null);
+  const pausedRef = useRef(false);
+
+  // Automatic Infinite Slider
+  useEffect(() => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+
+    let animationFrame;
+    let previousTime = 0;
+
+    const speed = 35; // Pixels per second
+
+    const animate = (time) => {
+      if (!previousTime) previousTime = time;
+
+      const delta = (time - previousTime) / 1000;
+      previousTime = time;
+
+      if (!pausedRef.current) {
+        const halfWidth = slider.scrollWidth / 2;
+
+        slider.scrollLeft += speed * delta;
+
+        // Infinite loop
+        if (slider.scrollLeft >= halfWidth) {
+          slider.scrollLeft -= halfWidth;
+        }
+      }
+
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, []);
 
   const slide = (direction) => {
     if (!sliderRef.current) return;
@@ -50,6 +86,9 @@ export default function Testimonials() {
       behavior: "smooth",
     });
   };
+
+  // Duplicate cards for infinite sliding
+  const infiniteTestimonials = [...testimonials, ...testimonials];
 
   return (
     <section
@@ -109,9 +148,13 @@ export default function Testimonials() {
         {/* Testimonials Slider */}
         <div
           ref={sliderRef}
+          onMouseEnter={() => (pausedRef.current = true)}
+          onMouseLeave={() => (pausedRef.current = false)}
+          onTouchStart={() => (pausedRef.current = true)}
+          onTouchEnd={() => (pausedRef.current = false)}
           className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {testimonials.map((item, index) => (
+          {infiniteTestimonials.map((item, index) => (
             <div
               key={index}
               data-testimonial-card
