@@ -141,7 +141,7 @@ export default function FeaturedProjects() {
     let animationFrame;
     let previousTime = 0;
 
-    const speed = 25; // Pixels per second
+    const speed = 45; // Pixels per second
 
     const animate = (time) => {
       if (!sliderRef.current) return;
