@@ -18,9 +18,11 @@ export default function FeaturedProjects() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isPaused, setIsPaused] = useState(false);
 
   const sliderRef = useRef(null);
 
+  // Fetch Featured Projects
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -61,6 +63,7 @@ export default function FeaturedProjects() {
     fetchProjects();
   }, []);
 
+  // Filter Projects
   const filteredProjects = projects.filter((project) => {
     if (activeFilter === "all") return true;
 
@@ -98,7 +101,7 @@ export default function FeaturedProjects() {
     });
   };
 
-  // Reset slider position when filter changes
+  // Reset Slider When Filter Changes
   const changeFilter = (value) => {
     setActiveFilter(value);
 
@@ -110,6 +113,54 @@ export default function FeaturedProjects() {
     }
   };
 
+  // Automatic Project Slider - Every 1 Second
+  useEffect(() => {
+    if (
+      loading ||
+      error ||
+      isPaused ||
+      filteredProjects.length <= 1
+    ) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const slider = sliderRef.current;
+
+      if (!slider) return;
+
+      // Check if slider has horizontal overflow
+      if (slider.scrollWidth <= slider.clientWidth + 10) {
+        return;
+      }
+
+      const card = slider.querySelector("[data-project-card]");
+
+      if (!card) return;
+
+      const cardWidth = card.getBoundingClientRect().width;
+      const gap = 16;
+
+      const isAtEnd =
+        slider.scrollLeft + slider.clientWidth >=
+        slider.scrollWidth - 10;
+
+      if (isAtEnd) {
+        slider.scrollTo({
+          left: 0,
+          behavior: "smooth",
+        });
+      } else {
+        slider.scrollBy({
+          left: cardWidth + gap,
+          behavior: "smooth",
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [loading, error, filteredProjects.length, isPaused]);
+
   return (
     <section
       id="featured-projects"
@@ -117,6 +168,7 @@ export default function FeaturedProjects() {
     >
       {/* Background Decorations */}
       <div className="pointer-events-none absolute -left-40 top-10 h-72 w-72 rounded-full bg-purple-200/40 blur-[100px]" />
+
       <div className="pointer-events-none absolute -right-40 bottom-0 h-72 w-72 rounded-full bg-fuchsia-200/30 blur-[100px]" />
 
       <div className="relative mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
@@ -125,6 +177,7 @@ export default function FeaturedProjects() {
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-purple-200 bg-white px-4 py-2">
             <span className="h-2 w-2 rounded-full bg-[#7900D8]" />
+
             <span className="text-xs font-bold uppercase tracking-[2px] text-[#7900D8]">
               My Recent Work
             </span>
@@ -163,24 +216,43 @@ export default function FeaturedProjects() {
 
           {/* Slider Controls */}
           <div className="flex items-center gap-2">
+
+            {/* Previous Button */}
             <button
               type="button"
               onClick={() => slide(-1)}
               aria-label="Previous projects"
               className="flex h-11 w-11 items-center justify-center rounded-full border border-purple-200 bg-white text-[#7900D8] shadow-sm transition hover:border-[#7900D8] hover:bg-[#7900D8] hover:text-white"
             >
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-5 w-5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
             </button>
 
+            {/* Next Button */}
             <button
               type="button"
               onClick={() => slide(1)}
               aria-label="Next projects"
               className="flex h-11 w-11 items-center justify-center rounded-full border border-purple-200 bg-white text-[#7900D8] shadow-sm transition hover:border-[#7900D8] hover:bg-[#7900D8] hover:text-white"
             >
-              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-5 w-5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M5 12h14m-7-7 7 7-7 7" />
               </svg>
             </button>
@@ -196,8 +268,10 @@ export default function FeaturedProjects() {
                 className="rounded-2xl border border-purple-100 bg-white p-3"
               >
                 <div className="aspect-[4/3] animate-pulse rounded-xl bg-purple-100" />
-                <div className="mt-4 h-5 w-2/3 animate-pulse rounded bg-purple-100" />
-                <div className="mt-3 h-3 w-full animate-pulse rounded bg-purple-50" />
+
+                <div className="mt-4 h-5 w-2/3 rounded bg-purple-100" />
+
+                <div className="mt-3 h-3 w-full rounded bg-purple-50" />
               </div>
             ))}
           </div>
@@ -235,6 +309,8 @@ export default function FeaturedProjects() {
         {!loading && !error && filteredProjects.length > 0 && (
           <div
             ref={sliderRef}
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
             className="flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
             {filteredProjects.map((project) => {
