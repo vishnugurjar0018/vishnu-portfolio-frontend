@@ -50,7 +50,7 @@ export default function Header() {
           className="group relative flex h-14 w-32 shrink-0 items-center sm:w-36"
         >
           <Image
-            src="/images/logo.png"
+            src="/images/Logo.png"
             alt="VK Creations Logo"
             fill
             priority

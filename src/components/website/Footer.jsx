@@ -84,7 +84,7 @@ export default function Footer() {
               className="relative inline-flex h-20 w-52 items-center sm:h-24 sm:w-60"
             >
               <Image
-                src="/images/logo2.png"
+                src="/images/Logo2.png"
                 alt="VK Creations Logo"
                 fill
                 sizes="240px"
