@@ -1,4 +1,3 @@
-
 import Image from "next/image";
 
 export default function MyStory() {
@@ -19,6 +18,7 @@ export default function MyStory() {
             </span>
           </h2>
 
+          {/* Profile Image */}
           <div className="relative mt-8 max-w-[430px]">
             <div className="absolute -left-3 -top-3 h-full w-full rounded-[26px] border-2 border-purple-200" />
 
@@ -32,12 +32,6 @@ export default function MyStory() {
                   className="object-cover"
                 />
               </div>
-            </div>
-
-            <div className="absolute -bottom-5 -right-3 rounded-xl border border-purple-100 bg-white px-5 py-3 shadow-lg sm:-right-5">
-              <p className="text-sm font-bold text-[#7900D8]">
-                Self-Taught Designer
-              </p>
             </div>
           </div>
         </div>
